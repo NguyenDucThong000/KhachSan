@@ -1,0 +1,401 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  // Xóa hoặc comment dòng importFileExtension = "ts" đi
+  // importFileExtension = "ts" 
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model activity_logs {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?
+  action      String    @db.VarChar(100)
+  module      String    @db.VarChar(50)
+  description String?   @db.Text
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  users       users?    @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "activity_logs_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model booking_details {
+  id               Int      @id @default(autoincrement())
+  booking_id       Int
+  room_id          Int
+  price_at_booking Decimal  @db.Decimal(10, 2)
+  bookings         bookings @relation(fields: [booking_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "booking_details_ibfk_1")
+  rooms            rooms    @relation(fields: [room_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "booking_details_ibfk_2")
+
+  @@unique([booking_id, room_id], map: "uq_booking_details_booking_room")
+  @@index([room_id], map: "room_id")
+}
+
+model bookings {
+  id                Int                @id @default(autoincrement())
+  customer_id       Int
+  booking_date      DateTime           @default(now()) @db.Timestamp(0)
+  expected_checkin  DateTime           @db.DateTime(0)
+  expected_checkout DateTime           @db.DateTime(0)
+  deposit           Decimal            @default(0.00) @db.Decimal(10, 2)
+  status            bookings_status    @default(Pending)
+  booking_details   booking_details[]
+  customers         customers          @relation(fields: [customer_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "bookings_ibfk_1")
+  checkin_checkout  checkin_checkout[]
+  reviews           reviews?
+
+  @@index([customer_id], map: "customer_id")
+  @@index([status, expected_checkin, expected_checkout], map: "idx_bookings_status_dates")
+}
+
+model checkin_checkout {
+  id              Int              @id @default(autoincrement())
+  booking_id      Int
+  actual_checkin  DateTime         @db.DateTime(0)
+  actual_checkout DateTime?        @db.DateTime(0)
+  receptionist_id Int?
+  bookings        bookings         @relation(fields: [booking_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "checkin_checkout_ibfk_1")
+  employees       employees?       @relation(fields: [receptionist_id], references: [id], onUpdate: NoAction, map: "checkin_checkout_ibfk_2")
+  invoices        invoices[]
+  service_orders  service_orders[]
+
+  @@index([booking_id], map: "booking_id")
+  @@index([receptionist_id], map: "receptionist_id")
+}
+
+model customers {
+  id            Int        @id @default(autoincrement())
+  user_id       Int?
+  full_name     String     @db.VarChar(100)
+  phone         String     @unique(map: "phone") @db.VarChar(15)
+  cccd_passport String     @unique(map: "cccd_passport") @db.VarChar(50)
+  email         String?    @db.VarChar(100)
+  bookings      bookings[]
+  users         users?     @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "customers_ibfk_1")
+  reviews       reviews[]
+
+  @@unique([user_id], map: "uq_customers_user_id")
+}
+
+model employee_shifts {
+  id          Int       @id @default(autoincrement())
+  employee_id Int
+  shift_id    Int
+  work_date   DateTime  @db.Date
+  employees   employees @relation(fields: [employee_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "employee_shifts_ibfk_1")
+  shifts      shifts    @relation(fields: [shift_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "employee_shifts_ibfk_2")
+
+  @@unique([employee_id, shift_id, work_date], map: "uq_employee_shifts_employee_shift_date")
+  @@index([shift_id], map: "shift_id")
+}
+
+model employees {
+  id                                                               Int                    @id @default(autoincrement())
+  user_id                                                          Int                    @unique(map: "uq_employees_user_id")
+  full_name                                                        String                 @db.VarChar(100)
+  phone                                                            String                 @unique(map: "phone") @db.VarChar(15)
+  cccd                                                             String                 @unique(map: "cccd") @db.VarChar(20)
+  address                                                          String?                @db.VarChar(255)
+  checkin_checkout                                                 checkin_checkout[]
+  employee_shifts                                                  employee_shifts[]
+  users                                                            users                  @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "employees_ibfk_1")
+  housekeeping_tasks                                               housekeeping_tasks[]
+  invoices                                                         invoices[]
+  leave_requests_leave_requests_employee_idToemployees             leave_requests[]       @relation("leave_requests_employee_idToemployees")
+  leave_requests_leave_requests_approved_byToemployees             leave_requests[]       @relation("leave_requests_approved_byToemployees")
+  maintenance_requests_maintenance_requests_reported_byToemployees maintenance_requests[] @relation("maintenance_requests_reported_byToemployees")
+  maintenance_requests_maintenance_requests_assigned_toToemployees maintenance_requests[] @relation("maintenance_requests_assigned_toToemployees")
+  refunds                                                          refunds[]
+}
+
+model housekeeping_tasks {
+  id           Int                        @id @default(autoincrement())
+  room_id      Int
+  assigned_to  Int?
+  status       housekeeping_tasks_status? @default(Pending)
+  notes        String?                    @db.Text
+  created_at   DateTime?                  @default(now()) @db.Timestamp(0)
+  completed_at DateTime?                  @db.Timestamp(0)
+  rooms        rooms                      @relation(fields: [room_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "housekeeping_tasks_ibfk_1")
+  employees    employees?                 @relation(fields: [assigned_to], references: [id], onUpdate: NoAction, map: "housekeeping_tasks_ibfk_2")
+
+  @@index([assigned_to], map: "assigned_to")
+  @@index([room_id], map: "room_id")
+}
+
+model invoice_promotions {
+  invoice_id   Int
+  promotion_id Int
+  invoices     invoices   @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "invoice_promotions_ibfk_1")
+  promotions   promotions @relation(fields: [promotion_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "invoice_promotions_ibfk_2")
+
+  @@id([invoice_id, promotion_id])
+  @@index([promotion_id], map: "promotion_id")
+}
+
+model invoices {
+  id                 Int                  @id @default(autoincrement())
+  checkin_id         Int?
+  employee_id        Int?
+  room_charge        Decimal              @db.Decimal(10, 2)
+  service_charge     Decimal              @db.Decimal(10, 2)
+  discount           Decimal              @default(0.00) @db.Decimal(10, 2)
+  total_amount       Decimal              @db.Decimal(10, 2)
+  created_at         DateTime?            @default(now()) @db.Timestamp(0)
+  status             invoices_status      @default(UNPAID)
+  invoice_promotions invoice_promotions[]
+  checkin_checkout   checkin_checkout?    @relation(fields: [checkin_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "invoices_ibfk_1")
+  employees          employees?           @relation(fields: [employee_id], references: [id], onUpdate: NoAction, map: "invoices_ibfk_2")
+  payments           payments[]
+  refunds            refunds[]
+
+  @@index([checkin_id], map: "checkin_id")
+  @@index([employee_id], map: "employee_id")
+}
+
+model leave_requests {
+  id                                              Int                    @id @default(autoincrement())
+  employee_id                                     Int
+  start_date                                      DateTime               @db.Date
+  end_date                                        DateTime               @db.Date
+  reason                                          String?                @db.Text
+  status                                          leave_requests_status? @default(Pending)
+  approved_by                                     Int?
+  created_at                                      DateTime?              @default(now()) @db.Timestamp(0)
+  employees_leave_requests_employee_idToemployees employees              @relation("leave_requests_employee_idToemployees", fields: [employee_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "leave_requests_ibfk_1")
+  employees_leave_requests_approved_byToemployees employees?             @relation("leave_requests_approved_byToemployees", fields: [approved_by], references: [id], onUpdate: NoAction, map: "leave_requests_ibfk_2")
+
+  @@index([approved_by], map: "approved_by")
+  @@index([employee_id], map: "employee_id")
+}
+
+model maintenance_requests {
+  id                                                    Int                          @id @default(autoincrement())
+  room_id                                               Int
+  reported_by                                           Int?
+  assigned_to                                           Int?
+  issue_description                                     String                       @db.Text
+  status                                                maintenance_requests_status? @default(Pending)
+  created_at                                            DateTime?                    @default(now()) @db.Timestamp(0)
+  resolved_at                                           DateTime?                    @db.Timestamp(0)
+  rooms                                                 rooms                        @relation(fields: [room_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "maintenance_requests_ibfk_1")
+  employees_maintenance_requests_reported_byToemployees employees?                   @relation("maintenance_requests_reported_byToemployees", fields: [reported_by], references: [id], onUpdate: NoAction, map: "maintenance_requests_ibfk_2")
+  employees_maintenance_requests_assigned_toToemployees employees?                   @relation("maintenance_requests_assigned_toToemployees", fields: [assigned_to], references: [id], onUpdate: NoAction, map: "maintenance_requests_ibfk_3")
+
+  @@index([assigned_to], map: "assigned_to")
+  @@index([reported_by], map: "reported_by")
+  @@index([room_id], map: "room_id")
+}
+
+model notifications {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  title      String    @db.VarChar(100)
+  message    String    @db.Text
+  is_read    Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "notifications_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model payments {
+  id             Int                     @id @default(autoincrement())
+  invoice_id     Int
+  payment_method payments_payment_method
+  amount_paid    Decimal                 @db.Decimal(10, 2)
+  payment_time   DateTime?               @default(now()) @db.Timestamp(0)
+  invoices       invoices                @relation(fields: [invoice_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "payments_ibfk_1")
+
+  @@index([invoice_id], map: "invoice_id")
+}
+
+model promotions {
+  id                 Int                      @id @default(autoincrement())
+  code               String                   @unique(map: "code") @db.VarChar(50)
+  discount_type      promotions_discount_type
+  discount_value     Decimal                  @db.Decimal(10, 2)
+  start_date         DateTime                 @db.DateTime(0)
+  end_date           DateTime                 @db.DateTime(0)
+  is_active          Boolean?                 @default(true)
+  invoice_promotions invoice_promotions[]
+}
+
+model refunds {
+  id          Int        @id @default(autoincrement())
+  invoice_id  Int
+  amount      Decimal    @db.Decimal(10, 2)
+  reason      String?    @db.Text
+  refunded_by Int?
+  created_at  DateTime?  @default(now()) @db.Timestamp(0)
+  invoices    invoices   @relation(fields: [invoice_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "refunds_ibfk_1")
+  employees   employees? @relation(fields: [refunded_by], references: [id], onUpdate: NoAction, map: "refunds_ibfk_2")
+
+  @@index([invoice_id], map: "invoice_id")
+  @@index([refunded_by], map: "refunded_by")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reviews {
+  id          Int       @id @default(autoincrement())
+  customer_id Int
+  booking_id  Int       @unique(map: "booking_id")
+  rating      Int
+  comment     String?   @db.Text
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  customers   customers @relation(fields: [customer_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "reviews_ibfk_1")
+  bookings    bookings  @relation(fields: [booking_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "reviews_ibfk_2")
+
+  @@index([customer_id], map: "customer_id")
+}
+
+model roles {
+  id          Int     @id @default(autoincrement())
+  role_name   String  @unique(map: "role_name") @db.VarChar(50)
+  description String? @db.VarChar(255)
+  users       users[]
+}
+
+model room_types {
+  id          Int     @id @default(autoincrement())
+  type_name   String  @unique(map: "uq_room_types_type_name") @db.VarChar(50)
+  base_price  Decimal @db.Decimal(10, 2)
+  capacity    Int
+  description String? @db.Text
+  rooms       rooms[]
+}
+
+model rooms {
+  id                   Int                      @id @default(autoincrement())
+  room_number          String                   @unique(map: "room_number") @db.VarChar(10)
+  room_type_id         Int
+  operational_status   rooms_operational_status @default(AVAILABLE)
+  cleaning_status      rooms_cleaning_status    @default(CLEAN)
+  technical_status     rooms_technical_status   @default(NORMAL)
+  booking_details      booking_details[]
+  housekeeping_tasks   housekeeping_tasks[]
+  maintenance_requests maintenance_requests[]
+  room_types           room_types               @relation(fields: [room_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "rooms_ibfk_1")
+
+  @@index([room_type_id], map: "room_type_id")
+}
+
+model service_orders {
+  id               Int              @id @default(autoincrement())
+  checkin_id       Int
+  service_id       Int
+  quantity         Int              @default(1)
+  total_price      Decimal          @db.Decimal(10, 2)
+  order_time       DateTime?        @default(now()) @db.Timestamp(0)
+  checkin_checkout checkin_checkout @relation(fields: [checkin_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "service_orders_ibfk_1")
+  services         services         @relation(fields: [service_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "service_orders_ibfk_2")
+
+  @@index([checkin_id], map: "checkin_id")
+  @@index([service_id], map: "service_id")
+}
+
+model services {
+  id             Int              @id @default(autoincrement())
+  service_name   String           @db.VarChar(100)
+  price          Decimal          @db.Decimal(10, 2)
+  unit           String           @db.VarChar(20)
+  service_orders service_orders[]
+}
+
+model shifts {
+  id              Int               @id @default(autoincrement())
+  shift_name      String            @unique(map: "uq_shifts_name") @db.VarChar(50)
+  start_time      DateTime          @db.Time(0)
+  end_time        DateTime          @db.Time(0)
+  employee_shifts employee_shifts[]
+}
+
+model system_configurations {
+  id           Int     @id @default(autoincrement())
+  config_key   String  @unique(map: "config_key") @db.VarChar(50)
+  config_value String  @db.VarChar(255)
+  description  String? @db.VarChar(255)
+}
+
+model users {
+  id            Int             @id @default(autoincrement())
+  username      String          @unique(map: "username") @db.VarChar(50)
+  password      String          @db.VarChar(255)
+  email         String          @unique(map: "email") @db.VarChar(100)
+  role_id       Int
+  is_active     Boolean?        @default(true)
+  created_at    DateTime?       @default(now()) @db.Timestamp(0)
+  activity_logs activity_logs[]
+  customers     customers?
+  employees     employees?
+  notifications notifications[]
+  roles         roles           @relation(fields: [role_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "users_ibfk_1")
+
+  @@index([role_id], map: "role_id")
+}
+
+enum payments_payment_method {
+  Cash
+  Credit_Card @map("Credit Card")
+  Transfer
+}
+
+enum promotions_discount_type {
+  Percentage
+  Fixed_Amount
+}
+
+enum housekeeping_tasks_status {
+  Pending
+  In_Progress
+  Completed
+}
+
+enum rooms_operational_status {
+  AVAILABLE
+  RESERVED
+  OCCUPIED
+}
+
+enum rooms_cleaning_status {
+  CLEAN
+  DIRTY
+  CLEANING
+}
+
+enum leave_requests_status {
+  Pending
+  Approved
+  Rejected
+}
+
+enum maintenance_requests_status {
+  Pending
+  In_Progress
+  Resolved
+}
+
+enum rooms_technical_status {
+  NORMAL
+  MAINTENANCE
+  OUT_OF_SERVICE
+}
+
+enum bookings_status {
+  Pending
+  Confirmed
+  Cancelled
+}
+
+enum invoices_status {
+  UNPAID
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
