@@ -272,6 +272,7 @@ model rooms {
   id                   Int                      @id @default(autoincrement())
   room_number          String                   @unique(map: "room_number") @db.VarChar(10)
   room_type_id         Int
+  image_url            String?                  @db.VarChar(2048)
   operational_status   rooms_operational_status @default(AVAILABLE)
   cleaning_status      rooms_cleaning_status    @default(CLEAN)
   technical_status     rooms_technical_status   @default(NORMAL)

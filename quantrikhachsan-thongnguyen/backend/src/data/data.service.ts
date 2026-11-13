@@ -178,6 +178,7 @@ const resources: Record<string, ResourceDefinition> = {
       'id',
       'room_number',
       'room_type_id',
+      'image_url',
       'operational_status',
       'cleaning_status',
       'technical_status',
@@ -480,6 +481,25 @@ export class DataService {
       }
       if (typeof value === 'number' && !Number.isFinite(value)) {
         throw new BadRequestException(`Field "${field}" must be a finite number`);
+      }
+      if (resource.table === 'rooms' && field === 'image_url' && value !== null) {
+        if (typeof value !== 'string' || value.length > 2048) {
+          throw new BadRequestException('Room image URL must be a string up to 2048 characters');
+        }
+        if (value.startsWith('//')) {
+          throw new BadRequestException('Room image URL must use HTTPS or a site-relative path');
+        }
+        if (!value.startsWith('/')) {
+          let imageUrl: URL;
+          try {
+            imageUrl = new URL(value);
+          } catch {
+            throw new BadRequestException('Room image URL must be a valid HTTPS URL or site-relative path');
+          }
+          if (imageUrl.protocol !== 'https:') {
+            throw new BadRequestException('Room image URL must use HTTPS or a site-relative path');
+          }
+        }
       }
       result[field] = value as string | number | boolean | null;
     }

@@ -73,13 +73,13 @@ INSERT INTO customers (id, user_id, full_name, phone, cccd_passport, email) VALU
 -- ==========================================
 
 -- Rooms (Phòng) - Phân bổ trạng thái đa dạng
-INSERT INTO rooms (id, room_number, room_type_id, operational_status, cleaning_status, technical_status) VALUES
-(1, '101', 1, 'AVAILABLE', 'DIRTY', 'NORMAL'),     -- Khách đã trả phòng, đang chờ dọn
-(2, '102', 1, 'AVAILABLE', 'CLEAN', 'NORMAL'),      -- Sẵn sàng đón khách
-(3, '103', 1, 'AVAILABLE', 'CLEAN', 'MAINTENANCE'),-- Đang sửa điều hòa
-(4, '201', 2, 'AVAILABLE', 'CLEAN', 'NORMAL'),
-(5, '202', 2, 'RESERVED', 'CLEAN', 'NORMAL'),       -- Đã có khách đặt trước
-(6, '301', 3, 'AVAILABLE', 'DIRTY', 'NORMAL');      -- Phòng Suite đang chờ dọn
+INSERT INTO rooms (id, room_number, room_type_id, image_url, operational_status, cleaning_status, technical_status) VALUES
+(1, '101', 1, 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1200&q=85', 'AVAILABLE', 'DIRTY', 'NORMAL'),     -- Khách đã trả phòng, đang chờ dọn
+(2, '102', 1, 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1200&q=85', 'AVAILABLE', 'CLEAN', 'NORMAL'),      -- Sẵn sàng đón khách
+(3, '103', 1, 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1200&q=85', 'AVAILABLE', 'CLEAN', 'MAINTENANCE'),-- Đang sửa điều hòa
+(4, '201', 2, 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=85', 'AVAILABLE', 'CLEAN', 'NORMAL'),
+(5, '202', 2, 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=85', 'RESERVED', 'CLEAN', 'NORMAL'),       -- Đã có khách đặt trước
+(6, '301', 3, 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=85', 'AVAILABLE', 'DIRTY', 'NORMAL');      -- Phòng Suite đang chờ dọn
 
 -- ==========================================
 -- 4. NHÓM ĐẶT PHÒNG & LƯU TRÚ

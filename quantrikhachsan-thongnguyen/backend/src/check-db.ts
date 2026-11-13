@@ -1,28 +1,24 @@
 import 'dotenv/config';
-import { PrismaClient } from './generated/prisma/client'; // Đường dẫn quan trọng
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaService } from './prisma/prisma.service';
 
-// Cấu hình adapter với các trường riêng lẻ thay vì 'url'
-const adapter = new PrismaMariaDb({
-  host: 'localhost',
-  port: 3306,
-  user: 'root',
-  password: '142857', // Mật khẩu của bạn
-  database: 'hotel_management',
-  connectionLimit: 5,
-});
-
-const prisma = new PrismaClient({ adapter });
-
+const prisma = new PrismaService();
 async function main() {
   try {
     await prisma.$connect();
-    console.log('✅ KẾT NỐI DATABASE THÀNH CÔNG!');
-  } catch (error) {
-    console.error('❌ KẾT NỐI THẤT BẠI:', error);
+    const [database, roomTypeCount, roomsWithImages] = await Promise.all([
+      prisma.$queryRaw<Array<{ database_name: string }>>`SELECT DATABASE() AS database_name`,
+      prisma.room_types.count(),
+      prisma.rooms.count({ where: { image_url: { not: null } } }),
+    ]);
+    console.log(
+      `Kết nối thành công tới ${database[0]?.database_name}; số loại phòng: ${roomTypeCount}; số phòng có ảnh: ${roomsWithImages}`,
+    );
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main();
+void main().catch((error: unknown) => {
+  console.error('Kiểm tra database thất bại:', error);
+  process.exitCode = 1;
+});

@@ -12,10 +12,14 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  const allowedOrigins = new Set(
+    process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) ?? [],
+  );
+  if (process.env.NODE_ENV !== 'production') {
+    allowedOrigins.add('http://localhost:5173');
+  }
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ?? [
-      'http://localhost:5173',
-    ],
+    origin: [...allowedOrigins],
   });
   await app.listen(process.env.PORT ?? 3000);
 }

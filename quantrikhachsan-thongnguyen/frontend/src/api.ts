@@ -21,6 +21,7 @@ export type HotelRoom = {
   id: number
   room_number: string
   room_type_id?: number
+  image_url?: string | null
   operational_status?: string
   cleaning_status?: string
   technical_status?: string
@@ -37,6 +38,7 @@ export type PublicRoomType = {
   base_price: number | string
   capacity: number
   description?: string | null
+  image_url?: string | null
 }
 
 export type Booking = {

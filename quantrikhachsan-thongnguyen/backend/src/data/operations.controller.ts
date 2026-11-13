@@ -79,17 +79,26 @@ export class OperationsController {
 
   @Get('public/room-types')
   @Public()
-  findPublicRoomTypes() {
-    return this.prisma.room_types.findMany({
+  async findPublicRoomTypes() {
+    const roomTypes = await this.prisma.room_types.findMany({
       select: {
         id: true,
         type_name: true,
         base_price: true,
         capacity: true,
         description: true,
+        rooms: {
+          select: { image_url: true },
+          orderBy: { room_number: 'asc' },
+          take: 1,
+        },
       },
       orderBy: { base_price: 'asc' },
     });
+    return roomTypes.map(({ rooms, ...roomType }) => ({
+      ...roomType,
+      image_url: rooms[0]?.image_url ?? null,
+    }));
   }
 
   @Get('public/rooms/availability')
@@ -103,6 +112,7 @@ export class OperationsController {
     return rooms.map((room) => ({
       id: room.id,
       room_number: room.room_number,
+      image_url: room.image_url,
       room_types: room.room_types
         ? {
             type_name: room.room_types.type_name,
